@@ -32,7 +32,7 @@ int main()
 {
 
   auto reader = TReader::New();
-  reader->SetFileName( "../data/wires_gray.png" );
+  reader->SetFileName( "../data/wires.png" );
 
   auto fft = TFFT::New();
   fft->SetInput( reader->GetOutput() );
