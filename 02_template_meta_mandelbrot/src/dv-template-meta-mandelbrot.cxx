@@ -10,8 +10,6 @@
 
 struct Mbrot
 {
-  // Maximum number of iterations to determine convergence
-  static constexpr std::size_t its = 8;
   // Number of pixels per unit space
   static constexpr std::size_t res = 16;
   // Stride (Number of pixels across the entire image in either direction)
@@ -43,43 +41,56 @@ struct Mbrot
       (double(Mbrot::Row(i))-double(Mbrot::str/2))/double(Mbrot::res)
                                );
     }
+
   // Determine whether a given position in the complex plane is in the Mandelbrot set.
   static constexpr bool
-  IsInSet(std::complex<double> p)
+  IsInSet(std::complex<double> c)
     {
-    return Mbrot::is_inside_impl(p, p, Mbrot::its);
+    return Mbrot::is_inside_impl(c, c, Mbrot::its);
     }
   // Type of the array to be returned.
-  using Array = std::array<bool, Mbrot::pix>;
+  using TArray = std::array<bool, Mbrot::pix>;
+
+private:
   // std::integer_sequence instantiation, necessary.
-  using Sequence = std::make_index_sequence<Mbrot::pix>;
+  using TSequence = std::make_index_sequence<Mbrot::pix>;
   // Return the array.
   template<std::size_t ...i>
-  static constexpr Array
-  GetArray(std::index_sequence<i...> s)
+  static constexpr TArray
+  get_array_impl(std::index_sequence<i...> s)
     {
-    if (!std::is_same<std::index_sequence<i...>, Sequence>::value)
+    if (!std::is_same<std::index_sequence<i...>, TSequence>::value)
       { throw std::out_of_range("Incorrect sequence passed."); }
-    return Array{{ Mbrot::IsInSet(Mbrot::Pos(i))... }};
+    return TArray{{ Mbrot::IsInSet(Mbrot::Pos(i))... }};
     }
 
-  private:
+public:
+  // Return the array.
+  static constexpr TArray
+  GetArray()
+    {
+    constexpr auto s = Mbrot::TSequence();
+    return Mbrot::get_array_impl(s);
+    }
+
+private:
+  // Maximum number of iterations to determine convergence
+  static constexpr std::size_t its = 8;
   // Private implementation of the recursive function determining membership in the Mandelbrot set.
   static constexpr bool
-  is_inside_impl(std::complex<double> initial,
-                 std::complex<double> final,
+  is_inside_impl(std::complex<double> c,
+                 std::complex<double> z,
                  std::size_t it)
     {
-    return (0 == it || dv::abs(final) > 2) ?
-      dv::abs(final) < 2 : is_inside_impl(initial, dv::add(dv::mul(final,final), initial), it - 1);
+    return (0 == it || dv::abs(z) > 2) ?
+      dv::abs(z) < 2 : is_inside_impl(c, dv::add(dv::mul(z,z), c), it - 1);
     }
 };
 
 int main()
 {
 
-  constexpr auto s = Mbrot::Sequence();
-  constexpr auto a = Mbrot::GetArray(s);
+  constexpr auto a = Mbrot::GetArray();
 
   for (unsigned int i = 0; i < Mbrot::pix; ++i)
     {
